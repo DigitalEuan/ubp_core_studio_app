@@ -1,3 +1,5 @@
+![ubp core studio](ubp_core_studio.png)
+
 # UBP Core Studio
 
 **UBP Core Studio** is a specialized research environment designed for exploring the **Universal Binary Principle (UBP)**. It integrates a local Python kernel (Pyodide), advanced AI assistance (Gemini + Local LLMs), and a reflexive memory system to create a powerful, self-contained workspace for computational philosophy and scientific discovery.
