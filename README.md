@@ -31,7 +31,7 @@ The studio automatically downloads scripts from the UBP GitHub repository
 *   **Workspace Python Scripts**: [https://github.com/DigitalEuan/UBP_Repo/tree/main/core_studio_v4.0/core]
 *   **System KB**: [https://github.com/DigitalEuan/UBP_Repo/tree/main/core_studio_v4.0/system_kb]
 
-### Experimaental nature
+### Experimental nature
 *   **Development**: I am currently developing the scripts and kb files within the app so expect changes and all sort of experiments there.
 
 ---
