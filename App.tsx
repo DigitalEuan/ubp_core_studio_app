@@ -668,7 +668,7 @@ except Exception as e:
         let groundingUrls: { title: string; uri: string }[] | undefined = [];
 
         if (aiProvider === 'gemini') {
-            const apiKey = process.env.API_KEY || '';
+            const apiKey = process.env.GEMINI_API_KEY || '';
             const gemini = new GeminiService(apiKey, selectedModel);
             const history = chatMessages.map(m => ({ role: m.role, content: m.content }));
             const res = await gemini.generateStudyPlan(history, text, files, systemKb, studyKb, hashMemoryKb, beliefsKb, instructionManual, attachments);
