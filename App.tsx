@@ -286,7 +286,7 @@ export const App: React.FC = () => {
       try {
         const ts = Date.now();
         const sysUrl = 'https://raw.githubusercontent.com/DigitalEuan/UBP_Repo/main/core_studio_v4.0/system_kb/ubp_system_kb.json';
-        const beliefsUrl = 'https://raw.githubusercontent.com/DigitalEuan/UBP_Repo/main/core_studio_v4.0/core/ubp_beliefs_kb.json';
+        const beliefsUrl = 'https://raw.githubusercontent.com/DigitalEuan/UBP_Repo/main/core_studio_v4.0/system_kb/ubp_beliefs_kb.json';
         const hashUrl = 'https://raw.githubusercontent.com/DigitalEuan/UBP_Repo/main/core_studio_v4.0/system_kb/hash_memory_kb.json';
         const manualUrl = 'https://raw.githubusercontent.com/DigitalEuan/UBP_Repo/main/core_studio_v4.0/README.md';
         const autoTriggerUrl = 'https://raw.githubusercontent.com/DigitalEuan/UBP_Repo/main/core_studio_v4.0/core/auto_trigger.py';
