@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UBP Core Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+    <style>
+      /* Custom scrollbar for a technical feel */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e1e1e; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #4b5563; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280; 
+      }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+      
+      /* Markdown specific styles */
+      .prose-ubp {
+        color: #d1d5db;
+      }
+      .prose-ubp h1, .prose-ubp h2, .prose-ubp h3 {
+        color: #f3f4f6;
+        font-weight: 800;
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+        border-bottom: 1px solid #374151;
+        padding-bottom: 0.2em;
+      }
+      .prose-ubp h1 { font-size: 1.5rem; }
+      .prose-ubp h2 { font-size: 1.25rem; }
+      .prose-ubp h3 { font-size: 1.1rem; }
+      .prose-ubp p { margin-bottom: 1em; line-height: 1.6; }
+      .prose-ubp code { background: #111; padding: 0.2em 0.4em; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+      .prose-ubp pre { background: #111; padding: 1em; border-radius: 8px; border: 1px solid #374151; overflow-x: auto; margin-bottom: 1em; }
+      .prose-ubp ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+      .prose-ubp blockquote { border-left: 4px solid #7c3aed; padding-left: 1em; color: #9ca3af; font-style: italic; margin-bottom: 1em; }
+      .prose-ubp strong { color: #fff; font-weight: 700; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai",
+    "react": "https://esm.sh/react@18.3.1",
+    "react/": "https://esm.sh/react@18.3.1/",
+    "react-dom/": "https://esm.sh/react-dom@18.3.1/",
+    "three": "https://esm.sh/three@0.160.0",
+    "three/": "https://esm.sh/three@0.160.0/",
+    "three/examples/jsm/exporters/GLTFExporter.js": "https://esm.sh/three@0.160.0/examples/jsm/exporters/GLTFExporter.js",
+    "three/examples/jsm/exporters/OBJExporter.js": "https://esm.sh/three@0.160.0/examples/jsm/exporters/OBJExporter.js",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@4.0.379",
+    "pdfjs-dist/build/pdf.worker.mjs": "https://esm.sh/pdfjs-dist@4.0.379/build/pdf.worker.mjs",
+    "marked": "https://esm.sh/marked@11.1.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-950 text-gray-200 antialiased h-[100dvh] overflow-hidden">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

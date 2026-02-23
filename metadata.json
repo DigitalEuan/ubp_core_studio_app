@@ -1,0 +1,5 @@
+{
+  "name": "FOM UBP Core Studio V1",
+  "description": "A professional research environment for the Universal Binary Principle. Features an embedded Python kernel (Pyodide) to run the exact UBP Core logic without floating-point errors, coupled with a Gemini AI assistant to design and execute studies.",
+  "requestFramePermissions": []
+}
