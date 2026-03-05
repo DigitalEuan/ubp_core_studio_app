@@ -22,7 +22,12 @@ export type PyodideInterface = any;
 export interface Scene3DData {
   points?: Array<{ x: number, y: number, z: number, color?: string, size?: number }>;
   lines?: Array<{ start: [number, number, number], end: [number, number, number], color?: string }>;
-  spheres?: Array<{ x: number, y: number, z: number, r: number, color?: string }>;
+  spheres?: Array<{ 
+    x: number, y: number, z: number, r: number, color?: string, label?: string,
+    vx?: number, vy?: number, vz?: number,
+    orbit_r?: number, orbit_speed?: number, orbit_center?: [number, number, number],
+    pulse_rate?: number
+  }>;
 }
 
 export interface ExecutionResult {

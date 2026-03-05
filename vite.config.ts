@@ -11,7 +11,8 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       build: {
-        target: 'esnext'
+        target: 'esnext',
+        minify: false
       },
       optimizeDeps: {
         esbuildOptions: {

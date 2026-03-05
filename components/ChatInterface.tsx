@@ -3,8 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, AttachedDoc, PipelinePhase } from '../types';
 import * as pdfjs from 'pdfjs-dist';
 
-// Initialize PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@4.0.379/build/pdf.worker.mjs`;
+// Use CDN for worker to completely bypass Vite's minification which breaks pdfjs
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
