@@ -4,7 +4,7 @@ import { FileTab, AttachedDoc } from '../types';
 
 export class GeminiService {
   private ai: GoogleGenAI;
-  private model: string = 'gemini-3-pro-preview';
+  private model: string = 'gemini-3.1-pro-preview';
 
   constructor(apiKey: string, model?: string) {
     this.ai = new GoogleGenAI({ apiKey });

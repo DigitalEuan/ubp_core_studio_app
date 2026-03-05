@@ -35,7 +35,7 @@ export const AIProviderSelector: React.FC<AIProviderSelectorProps> = ({
       type: 'cloud',
       icon: '☁️',
       status: 'available',
-      models: ['gemini-3-pro-preview', 'gemini-3-flash-preview'],
+      models: ['gemini-3.1-pro-preview', 'gemini-3-pro-preview', 'gemini-3-flash-preview'],
     },
     {
       id: 'ollama',

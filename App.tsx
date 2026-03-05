@@ -47,7 +47,7 @@ export const App: React.FC = () => {
 
   // AI Provider Selection
   const [aiProvider, setAiProvider] = useState<'gemini' | 'ollama' | 'lm-studio' | 'gpt4all'>('gemini');
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-3-pro-preview');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.1-pro-preview');
   const [localLLMService, setLocalLLMService] = useState<LocalLLMService | null>(null);
   const [localLLMStatus, setLocalLLMStatus] = useState<'available' | 'unavailable' | 'checking'>('checking');
   
@@ -117,14 +117,7 @@ export const App: React.FC = () => {
 
         // EXCLUDE LARGE KB FILES to prevent browser crash/stalls
         const EXCLUDED_FILES = [
-            'ubp_system_kb.json',
-            'ubp_beliefs_kb.json',
-            'ubp_hash_memory_kb.json',
-            'ubp_system_kb.md', 
-            'ubp_study_kb.md', 
-            'ubp_hash_memory_kb.md',
-            'ubp_viz.py',
-            'ubp_fom_index.json' // Also exclude FOM index from file list to avoid clutter, accessible via FOM tab
+
         ];
 
         // Read all files from FS
@@ -270,13 +263,21 @@ export const App: React.FC = () => {
   // Sync Knowledge Bases to Python File System whenever they change content
   useEffect(() => {
     if (isPyodideReady) {
-        const syncKBs = async () => {
-            await pyodideService.writeFile('ubp_system_kb.json', systemKb);
-            await pyodideService.writeFile('ubp_beliefs_kb.json', beliefsKb);
-            await pyodideService.writeFile('ubp_study_kb.md', studyKb);
-            await pyodideService.writeFile('ubp_hash_memory_kb.json', hashMemoryKb);
-        };
-        syncKBs();
+        const timeoutId = setTimeout(() => {
+            const syncKBs = async () => {
+                try {
+                    await pyodideService.writeFile('ubp_system_kb.json', systemKb);
+                    await pyodideService.writeFile('ubp_beliefs_kb.json', beliefsKb);
+                    await pyodideService.writeFile('ubp_study_kb.md', studyKb);
+                    await pyodideService.writeFile('ubp_hash_memory_kb.json', hashMemoryKb);
+                } catch (e) {
+                    console.error("Failed to sync KBs to Pyodide FS", e);
+                }
+            };
+            syncKBs();
+        }, 1000); // 1-second debounce to prevent OOM crashes on rapid typing
+        
+        return () => clearTimeout(timeoutId);
     }
   }, [systemKb, studyKb, hashMemoryKb, beliefsKb, isPyodideReady]);
 
