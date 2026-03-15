@@ -1,10 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, AttachedDoc, PipelinePhase } from '../types';
+
 import * as pdfjs from 'pdfjs-dist';
 
-// Use CDN for worker to completely bypass Vite's minification which breaks pdfjs
-pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+// Use unpkg CDN for worker to completely bypass Vite's minification which breaks pdfjs
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@5.5.207/build/pdf.worker.min.mjs`;
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -50,10 +51,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
     if (!file) return;
     setIsProcessingFile(true);
     try {
-      if (file.type === 'application/pdf') {
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         const buffer = await file.arrayBuffer();
         const text = await (async () => {
-          const loadingTask = pdfjs.getDocument({ data: buffer });
+          const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
           const pdf = await loadingTask.promise;
           let fullText = '';
           for (let i = 1; i <= pdf.numPages; i++) {
@@ -68,7 +69,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
         const text = await file.text();
         setAttachments(prev => [...prev, { name: file.name, content: text, type: 'text' }]);
       }
-    } catch (err) { alert("Failed to process file."); }
+    } catch (err: any) { 
+      console.error("PDF Parse Error:", err);
+      alert("Failed to process file: " + (err.message || "Unknown error")); 
+    }
     finally { setIsProcessingFile(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
 
@@ -189,6 +193,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
                     </div>
                  </details>
                )}
+               
+               {/* Attachments Display */}
+               {msg.attachments && msg.attachments.length > 0 && (
+                 <div className="flex flex-wrap gap-2 mb-3">
+                   {msg.attachments.map((doc, idx) => (
+                     <div key={idx} className="flex items-center gap-1.5 bg-black/30 border border-white/10 px-2 py-1 rounded text-[10px] text-gray-400">
+                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                       <span className="truncate max-w-[150px]">{doc.name}</span>
+                     </div>
+                   ))}
+                 </div>
+               )}
+
                {renderMessageContent(msg)}
             </div>
           </div>
@@ -204,23 +221,34 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 bg-[#151515] border-t border-gray-800 shrink-0">
-        {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-             {attachments.map((doc, idx) => (
-               <div key={idx} className="flex items-center gap-2 bg-white/5 border border-white/10 px-2 py-1 rounded text-[10px]">
-                  <span className="truncate max-w-[100px] text-gray-400">{doc.name}</span>
-                  <button type="button" onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))} className="text-gray-600 hover:text-red-400 transition-colors">×</button>
-               </div>
-             ))}
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.md,.pdf" />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-none bg-white/5 hover:bg-white/10 text-gray-500 p-2.5 rounded border border-white/5 transition-all" title="Attach Document">
-             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+      <form onSubmit={handleSubmit} className="p-3 bg-[#151515] border-t border-gray-800 shrink-0 flex flex-col gap-2">
+        {/* Attachment Area (Above Input) */}
+        <div className="flex flex-wrap items-center gap-2">
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept=".txt,.md,.pdf,.json,.csv" />
+          <button 
+            type="button" 
+            onClick={() => fileInputRef.current?.click()} 
+            className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white px-3 py-1.5 rounded border border-white/10 transition-all text-[10px] font-bold uppercase tracking-wider"
+            title="Attach Document"
+          >
+             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+             Attach File
           </button>
+
+          {attachments.map((doc, idx) => (
+            <div key={idx} className="flex items-center gap-2 bg-purple-900/30 border border-purple-500/30 px-2 py-1 rounded text-[10px]">
+               <span className="truncate max-w-[120px] text-purple-200">{doc.name}</span>
+               <button type="button" onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))} className="text-purple-400 hover:text-red-400 transition-colors">×</button>
+            </div>
+          ))}
+          
+          {isProcessingFile && (
+            <span className="text-[10px] text-gray-500 animate-pulse">Processing...</span>
+          )}
+        </div>
+
+        {/* Input Row */}
+        <div className="flex gap-2 items-center">
           <input
             type="text"
             value={input}
@@ -228,7 +256,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
             placeholder="Follow the pipeline protocol..."
             className="flex-1 bg-black border border-white/5 rounded px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-900/50"
           />
-          <button type="submit" disabled={isLoading || (!input.trim() && attachments.length === 0)} className="flex-none bg-purple-600 hover:bg-purple-500 disabled:opacity-30 disabled:hover:bg-purple-600 text-white px-3 py-1 rounded transition-all" title="Send Message">
+          <button type="submit" disabled={isLoading || (!input.trim() && attachments.length === 0)} className="flex-none bg-purple-600 hover:bg-purple-500 disabled:opacity-30 disabled:hover:bg-purple-600 text-white px-4 py-2.5 rounded transition-all flex items-center justify-center" title="Send Message">
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
           </button>
         </div>

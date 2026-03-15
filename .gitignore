@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# User Repo Files (Prevent AI Studio GitHub Sync from deleting these)
+*.png
+*.jpg
+*.jpeg
+README.md

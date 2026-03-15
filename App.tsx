@@ -60,9 +60,11 @@ export const App: React.FC = () => {
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [fileToDelete, setFileToDelete] = useState<string | null>(null); // Track which file is pending deletion
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   
   const newFileInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const isResettingRef = useRef<boolean>(false);
   
   const [systemKb, setSystemKb] = useState("[]"); // Default empty JSON array
   const [studyKb, setStudyKb] = useState(INITIAL_STUDY_KB);
@@ -94,6 +96,7 @@ export const App: React.FC = () => {
   // FOM State
   const [fomFrames, setFomFrames] = useState<Frame[]>([]);
   const [activeFrame, setActiveFrame] = useState<string>('');
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
 
   const loadStudyRef = useRef<HTMLInputElement>(null);
   const uploadFileRef = useRef<HTMLInputElement>(null);
@@ -143,6 +146,17 @@ export const App: React.FC = () => {
         console.error("Failed to list files", e);
     }
   }, [pyodideService.isReady, files]); // Depend on files to preserve types
+
+  // Prevent accidental reloads
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isResettingRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // Initialize GPU Proxy Bridge
   useEffect(() => {
@@ -199,8 +213,6 @@ export const App: React.FC = () => {
         try {
             addConsoleLog('system', "Initializing Pyodide Runtime...");
             await pyodideService.initialize();
-            setIsPyodideReady(true);
-            addConsoleLog('system', "Pyodide Ready.");
             
             // Initial Sync of basic files
             await pyodideService.writeFile('ubp_system_kb.json', systemKb); 
@@ -210,6 +222,10 @@ export const App: React.FC = () => {
             
             await syncFOMSystem();
             addConsoleLog('system', "FOM System Ready.");
+            
+            setIsPyodideReady(true); // Set this AFTER all core files are written
+            addConsoleLog('system', "Pyodide Ready.");
+            
             await fetchFOMState();
             // REMOVED refreshFileList() to prevent race condition wiping out GitHub files
         } catch (err: any) { 
@@ -281,10 +297,69 @@ export const App: React.FC = () => {
     }
   }, [systemKb, studyKb, hashMemoryKb, beliefsKb, isPyodideReady]);
 
+  // Auto-save session to localStorage
+  useEffect(() => {
+    const saveSession = () => {
+      if (isResettingRef.current || !hasLoadedInitialData) return;
+      try {
+        const sessionData = {
+          files,
+          systemKb,
+          studyKb,
+          hashMemoryKb,
+          beliefsKb,
+          chatMessages,
+          consoleLogs,
+          activeTabId,
+          midColumnMode,
+          activeOutputTab,
+          fomFrames,
+          activeFrame,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('ubp_auto_save', JSON.stringify(sessionData));
+      } catch (e) {
+        console.warn('Failed to auto-save session:', e);
+      }
+    };
+    
+    const timeoutId = setTimeout(saveSession, 3000);
+    return () => clearTimeout(timeoutId);
+  }, [files, systemKb, studyKb, hashMemoryKb, beliefsKb, chatMessages, consoleLogs, activeTabId, midColumnMode, activeOutputTab, fomFrames, activeFrame, hasLoadedInitialData]);
+
   // Load Initial Resources from GitHub
   useEffect(() => {
     const loadResources = async () => {
       try {
+        // Check for auto-save first
+        const saved = localStorage.getItem('ubp_auto_save');
+        let hasAutoSave = false;
+        if (saved) {
+           const data = JSON.parse(saved);
+           if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) { // 24 hours
+              hasAutoSave = true;
+              if (data.files && data.files.length > 0) setFiles(data.files);
+              if (data.systemKb) setSystemKb(data.systemKb);
+              if (data.studyKb) setStudyKb(data.studyKb);
+              if (data.hashMemoryKb) setHashMemoryKb(data.hashMemoryKb);
+              if (data.beliefsKb) setBeliefsKb(data.beliefsKb);
+              if (data.chatMessages && data.chatMessages.length > 0) setChatMessages(data.chatMessages);
+              if (data.consoleLogs && data.consoleLogs.length > 0) setConsoleLogs(data.consoleLogs);
+              if (data.activeTabId) setActiveTabId(data.activeTabId);
+              if (data.midColumnMode) setMidColumnMode(data.midColumnMode);
+              if (data.activeOutputTab) setActiveOutputTab(data.activeOutputTab);
+              if (data.fomFrames && data.fomFrames.length > 0) {
+                  setInitialFomIndex(JSON.stringify(data.fomFrames));
+              }
+              addConsoleLog('system', 'Restored previous session from auto-save.');
+              setHasLoadedInitialData(true);
+           }
+        }
+        
+        if (hasAutoSave) {
+           return; // Skip loading from GitHub if we restored from auto-save
+        }
+
         const ts = Date.now();
         const sysUrl = 'https://raw.githubusercontent.com/DigitalEuan/UBP_Repo/main/core_studio_v4.0/system_kb/ubp_system_kb.json';
         const beliefsUrl = 'https://raw.githubusercontent.com/DigitalEuan/UBP_Repo/main/core_studio_v4.0/system_kb/ubp_beliefs_kb.json';
@@ -403,6 +478,8 @@ export const App: React.FC = () => {
             }
             return combined.filter(f => f.name.toLowerCase() !== 'scratch.py'); // FINAL FILTER
         });
+
+        setHasLoadedInitialData(true);
 
       } catch (e) { console.error("Resource load failed", e); }
     };
@@ -1004,6 +1081,10 @@ except Exception as e:
                 <button onClick={() => loadStudyRef.current?.click()} className="px-3 py-1 text-xs hover:bg-gray-700 rounded flex items-center gap-1 text-gray-300">
                     📂 Load Study
                 </button>
+                <div className="w-px bg-gray-700 mx-1"></div>
+                <button onClick={() => setShowResetConfirm(true)} className="px-3 py-1 text-xs hover:bg-red-900/50 rounded flex items-center gap-1 text-red-400">
+                    🔄 Reset
+                </button>
                 <input type="file" ref={loadStudyRef} onChange={handleLoadStudy} accept=".json" className="hidden" />
              </div>
              <div className={`px-2 py-1 rounded text-[10px] border ${isPyodideReady ? 'border-green-800 bg-green-900/30 text-green-400' : 'border-red-800 bg-red-900/30 text-red-400'}`}>
@@ -1230,6 +1311,37 @@ except Exception as e:
             </div>
         </div>
       </div>
+
+      {/* Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-red-400 mb-2">Reset Session?</h3>
+            <p className="text-sm text-gray-300 mb-6">
+              Are you sure you want to reset the session? All unsaved progress will be lost and the default GitHub files will be restored.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setShowResetConfirm(false)}
+                className="px-4 py-2 rounded text-sm bg-gray-800 hover:bg-gray-700 text-gray-300"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  isResettingRef.current = true;
+                  localStorage.removeItem('ubp_auto_save');
+                  window.location.reload();
+                }}
+                className="px-4 py-2 rounded text-sm bg-red-900/80 hover:bg-red-800 text-white"
+              >
+                Yes, Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
