@@ -73,5 +73,7 @@ declare global {
     ubp_gpu_load_data?: (jsonString: string) => string;
     // The Compute Function: Accepts query vector, returns nearest ID
     ubp_gpu_compute?: (r: number, g: number, b: number) => string;
+    // Live 3D Scene Update Function
+    updateScene3D?: (jsonString: string) => void;
   }
 }

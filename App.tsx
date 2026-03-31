@@ -756,7 +756,7 @@ except Exception as e:
         } else {
              if (!localLLMService) throw new Error("Local LLM not ready");
              const history = chatMessages.map(m => ({ role: m.role, content: m.content }));
-             const res = await localLLMService.generateResponse(text, history, files, systemKb, studyKb, hashMemoryKb);
+             const res = await localLLMService.generateResponse(text, history, files, systemKb, studyKb, hashMemoryKb, instructionManual);
              responseText = res.text;
         }
 
@@ -1060,6 +1060,12 @@ except Exception as e:
     URL.revokeObjectURL(url);
   };
 
+  const handleResetKernel = () => {
+    isResettingRef.current = true;
+    localStorage.removeItem('ubp_auto_save');
+    window.location.reload();
+  };
+
   return (
     <div className="flex flex-col h-[100dvh] w-full bg-black text-white overflow-hidden font-sans">
       {/* GLOBAL HEADER */}
@@ -1118,6 +1124,7 @@ except Exception as e:
                   onSendMessage={handleSendMessage}
                   onExtractCode={handleExtractCode}
                   onExtractToKB={handleExtractToKB}
+                  onResetKernel={handleResetKernel}
                />
            </div>
         </div>
@@ -1328,11 +1335,7 @@ except Exception as e:
                 Cancel
               </button>
               <button 
-                onClick={() => {
-                  isResettingRef.current = true;
-                  localStorage.removeItem('ubp_auto_save');
-                  window.location.reload();
-                }}
+                onClick={handleResetKernel}
                 className="px-4 py-2 rounded text-sm bg-red-900/80 hover:bg-red-800 text-white"
               >
                 Yes, Reset

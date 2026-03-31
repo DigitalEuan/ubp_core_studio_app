@@ -125,9 +125,15 @@ export class LocalLLMService {
     files: FileTab[] = [],
     systemKb: string = '',
     studyKb: string = '',
-    hashMemoryKb: string = ''
+    hashMemoryKb: string = '',
+    instructionManual: string = ''
   ): Promise<LocalLLMResponse> {
     const startTime = Date.now();
+
+    const truncate = (text: string, max: number = 5000) => {
+      if (text.length <= max) return text;
+      return text.slice(0, max) + "\n... [Truncated] ...";
+    };
 
     try {
       // Check service availability
@@ -136,9 +142,10 @@ export class LocalLLMService {
         throw new Error(`Local LLM service (${this.config.provider}) is not available at ${this.config.baseUrl}`);
       }
 
-      // Build context
+      // Build context (Truncated for local LLMs which often have smaller context windows)
       const fileContext = files
-        .map(f => `--- File: ${f.name} ---\n${f.content}`)
+        .slice(-20)
+        .map(f => `--- File: ${f.name} ---\n${truncate(f.content, 10000)}`)
         .join('\n\n');
 
       const systemPrompt = `You are the UBP Research Cortex (v4.2.7) running locally on Mac.
@@ -148,23 +155,26 @@ You have access to Python (Pyodide) for code execution and can help with:
 - Mathematical analysis
 - Data visualization
 
-WORKSPACE FILES:
+INSTRUCTION MANUAL:
+${truncate(instructionManual, 10000)}
+
+WORKSPACE FILES (TRUNCATED):
 ${fileContext || 'No files loaded'}
 
-SYSTEM KNOWLEDGE BASE:
-${systemKb || 'No system KB loaded'}
+SYSTEM KNOWLEDGE BASE (TRUNCATED):
+${truncate(systemKb, 10000)}
 
-STUDY KNOWLEDGE BASE:
-${studyKb || 'No study KB loaded'}
+STUDY KNOWLEDGE BASE (TRUNCATED):
+${truncate(studyKb, 5000)}
 
-HASH MEMORY:
-${hashMemoryKb || 'No hash memory loaded'}
+HASH MEMORY (TRUNCATED):
+${truncate(hashMemoryKb, 5000)}
 
 Be concise, technical, and focused on UBP research.`;
 
-      // Prepare messages
+      // Prepare messages (Limit history)
       const messages = [
-        ...history.map(h => ({
+        ...history.slice(-15).map(h => ({
           role: h.role === 'user' ? 'user' : 'assistant',
           content: h.content,
         })),

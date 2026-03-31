@@ -11,11 +11,14 @@ export class GeminiService {
     if (model) this.model = model;
   }
 
-  // Helper to slice the huge KB into a token-friendly snippet
-  private getMemorySnippet(fullKb: string): string {
-    const MAX_ENTRIES = 20; 
+  // Helper to slice the huge KB into a token-friendly snippet (TurboQuant Context Compression)
+  private getMemorySnippet(fullKb: string, maxChars: number = 60000): string {
+    const MAX_ENTRIES = 100; 
     
     if (!fullKb) return "Memory Empty.";
+
+    // If it's already small enough, just return it
+    if (fullKb.length <= maxChars) return fullKb;
 
     try {
         const data = JSON.parse(fullKb);
@@ -23,24 +26,35 @@ export class GeminiService {
         
         if (list.length > MAX_ENTRIES) {
              const snippet = list.slice(-MAX_ENTRIES);
-             return `[... ${list.length - MAX_ENTRIES} older verified entries available in Python HEX_DB ...]\n` + JSON.stringify(snippet, null, 2);
+             return `[... ${list.length - MAX_ENTRIES} older verified entries available in Python HEX_DB (TurboQuant Balanced) ...]\n` + JSON.stringify(snippet, null, 2);
         }
-        return fullKb;
+        
+        const stringified = JSON.stringify(data, null, 2);
+        if (stringified.length > maxChars) {
+            return `[... JSON Data Truncated (TurboQuant Balanced) ...]\n` + stringified.slice(-maxChars);
+        }
+        return stringified;
     } catch (e) {
         const lines = fullKb.split('\n');
         const entryLines = lines.filter(l => l.trim().startsWith('- [') || l.trim().startsWith('{"ubp_id"'));
         
         if (entryLines.length > MAX_ENTRIES) {
-            const header = lines.slice(0, 5).join('\n');
-            const tail = lines.slice(-200).join('\n'); 
-            return `${header}\n\n... [Middle content truncated. Rely on Reflexive Cortex for retrieval] ...\n\n${tail}`;
+            const header = lines.slice(0, 20).join('\n');
+            const tail = lines.slice(-500).join('\n'); 
+            return `${header}\n\n... [Middle content truncated via TurboQuant. Rely on Reflexive Cortex for retrieval] ...\n\n${tail}`;
         }
         
-        if (fullKb.length > 8000) {
-            return `[... Start of file truncated ...] \n` + fullKb.slice(-8000);
+        if (fullKb.length > maxChars) {
+            return `[... Start of file truncated (TurboQuant Balanced) ...] \n` + fullKb.slice(-maxChars);
         }
         return fullKb;
     }
+  }
+
+  private truncateFileContent(content: string, maxChars: number = 100000): string {
+    if (content.length <= maxChars) return content;
+    const half = Math.floor(maxChars / 2);
+    return `${content.slice(0, half)}\n\n... [CONTENT TRUNCATED BY TURBOQUANT BALANCED COMPRESSION] ...\n\n${content.slice(-half)}`;
   }
 
   async extractSearchTerms(userText: string): Promise<any[]> {
@@ -97,26 +111,28 @@ export class GeminiService {
     attachments: AttachedDoc[] = []
   ): Promise<{ text: string, thought?: string, groundingUrls?: { title: string; uri: string }[] }> {
     
-    // 1. Prepare Context (Files & Attachments)
+    // 1. Prepare Context (Files & Attachments) with Balanced TurboQuant Compression
     const validFiles = files.filter(f => f && f.name);
     
     const fileContext = validFiles.length > 0 
-      ? validFiles.map(f => `
+      ? validFiles.slice(-40).map(f => `
 === START FILE: ${f.name} (Type: ${f.type}) ===
-${f.content}
+${this.truncateFileContent(f.content, 120000)}
 === END FILE: ${f.name} ===
 `).join('\n')
       : "NO FILES CURRENTLY OPEN IN WORKSPACE.";
 
-    const attachmentContext = attachments.map(doc => `
+    const attachmentContext = attachments.slice(-15).map(doc => `
 === ATTACHMENT: ${doc.name} ===
-${doc.content}
+${this.truncateFileContent(doc.content, 60000)}
 === END ATTACHMENT ===
 `).join('\n');
 
-    // 2. Optimized Memory Context (RAG-Lite)
-    const recentSystemMemory = this.getMemorySnippet(systemKb);
-    const recentBeliefs = this.getMemorySnippet(beliefsKb);
+    // 2. Optimized Memory Context (TurboQuant Balanced RAG-Lite)
+    const recentSystemMemory = this.getMemorySnippet(systemKb, 80000);
+    const recentBeliefs = this.getMemorySnippet(beliefsKb, 40000);
+    const recentHashIndex = this.getMemorySnippet(hashMemoryKb, 40000);
+    const recentManual = this.truncateFileContent(instructionManual, 40000);
 
     // 3. Refined System Instruction
     const systemInstruction = `
@@ -163,21 +179,24 @@ You are the **UBP Research Cortex v4.2.7**. Your goal is to design, verify, and 
     "nrci_score": 0.0
   }
 
-### WORKSPACE FILES (VISIBLE):
+### INSTRUCTION MANUAL (REFERENCE):
+${recentManual}
+
+### WORKSPACE FILES (VISIBLE - TURBOQUANT BALANCED):
 ${fileContext}
 
-### ATTACHED DOCUMENTS:
+### ATTACHED DOCUMENTS (TURBOQUANT BALANCED):
 ${attachmentContext || "No attachments."}
 
-### MEMORY CONTEXT:
+### MEMORY CONTEXT (TURBOQUANT BALANCED):
 **System Knowledge Base (JSON Snippet):**
 ${recentSystemMemory}
 
 **Beliefs & Understanding Structures (JSON Snippet):**
 ${recentBeliefs}
 
-**Short-Term Hash Index (JSON):**
-${hashMemoryKb}
+**Short-Term Hash Index (JSON Snippet):**
+${recentHashIndex}
 `;
 
     // 4. Configure Thinking Budget
@@ -186,6 +205,9 @@ ${hashMemoryKb}
       : undefined;
 
     // 5. Create Chat Session with Google Search Only (No Memory Tool)
+    // Truncate history to avoid token limits (TurboQuant History Pruning - Balanced)
+    const compressedHistory = history.slice(-50); 
+
     const chat = this.ai.chats.create({
       model: this.model,
       config: {
@@ -196,39 +218,33 @@ ${hashMemoryKb}
             { googleSearch: {} }
         ], 
       },
-      history: history.map(h => ({
+      history: compressedHistory.map(h => ({
         role: h.role,
         parts: [{ text: h.content }],
       })),
     });
 
-    try {
-        // 6. Send Message
-        const result: GenerateContentResponse = await chat.sendMessage({
-          message: userMessage,
-        });
+    // 6. Send Message
+    const result: GenerateContentResponse = await chat.sendMessage({
+      message: userMessage,
+    });
 
-        // 7. Process Response
-        let finalText = result.text || "";
-        
-        // 8. Grounding Metadata
-        let groundingUrls: { title: string; uri: string }[] = [];
-        const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        if (chunks) {
-            groundingUrls = chunks
-                .filter((c: any) => c.web?.uri)
-                .map((c: any) => ({ title: c.web.title, uri: c.web.uri }));
-        }
-        
-        return { 
-            text: finalText, 
-            thought: undefined,
-            groundingUrls 
-        };
-
-    } catch (err: any) {
-        console.error("Gemini Generation Error:", err);
-        return { text: `**System Error:** ${err.message}\n\nPlease try resetting the kernel.`, thought: undefined };
+    // 7. Process Response
+    let finalText = result.text || "";
+    
+    // 8. Grounding Metadata
+    let groundingUrls: { title: string; uri: string }[] = [];
+    const chunks = result.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    if (chunks) {
+        groundingUrls = chunks
+            .filter((c: any) => c.web?.uri)
+            .map((c: any) => ({ title: c.web.title, uri: c.web.uri }));
     }
+    
+    return { 
+        text: finalText, 
+        thought: undefined,
+        groundingUrls 
+    };
   }
 }

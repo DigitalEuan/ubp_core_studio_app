@@ -13,9 +13,10 @@ interface ChatInterfaceProps {
   isLoading: boolean;
   onExtractCode: (code: string) => void;
   onExtractToKB: (target: 'system' | 'study' | 'hash' | 'beliefs', content: string) => void;
+  onResetKernel: () => void;
 }
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isLoading, onExtractCode, onExtractToKB }) => {
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isLoading, onExtractCode, onExtractToKB, onResetKernel }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<AttachedDoc[]>([]);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
@@ -207,6 +208,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMe
                )}
 
                {renderMessageContent(msg)}
+               
+               {msg.isError && (
+                 <div className="mt-4 pt-4 border-t border-red-900/30 flex flex-col gap-3">
+                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest">
+                       Critical Context Overflow Detected
+                    </p>
+                    <button 
+                      onClick={onResetKernel}
+                      className="bg-red-900/50 hover:bg-red-800 text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 border border-red-700/50 transition-all"
+                    >
+                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                       Reset Kernel (Clear Context)
+                    </button>
+                 </div>
+               )}
             </div>
           </div>
         ))}
