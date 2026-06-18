@@ -41,7 +41,7 @@ The studio automatically downloads scripts from the UBP GitHub repository
 ## Getting Started
 
 ### Web Version (No Installation)
-Simply access the deployed application URL. The entire environment runs within your web browser: [https://ai.studio/apps/8eef816d-e338-4bcb-9ae0-b9d2d0c476a5]
+Simply access the deployed application URL. The entire environment runs within your web browser: [https://aistudio.google.com/apps/6d78d479-2a4e-4e34-89b3-4b87b85d5b9a?fullscreenApplet=true]
 
 ### Local AI Setup (Optional)
 To use the **Local AI** features, you need a local inference server running.
